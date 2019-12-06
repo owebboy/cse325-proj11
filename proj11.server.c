@@ -6,6 +6,18 @@
 #include <unistd.h> // For read
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <fstream>
+#include <sstream> // i hate c++ strings
+#include <string>
+#include <string.h>
+
+#define BSIZE 2048
+
+std::string slurp(std::ifstream& in) {
+    std::stringstream sstr;
+    sstr << in.rdbuf();
+    return sstr.str();
+}
 
 int main() {
   // Create a socket (IPv4, TCP)
@@ -60,17 +72,37 @@ int main() {
 
   printf( "Server connected to %s (%s)\n\n", host_info->h_name, host );
 
-  // Read from the connection
-  char buffer[100];
-  auto bytesRead = read(connection, buffer, 100);
-  std::cout << "The message was: " << buffer;
+  while(1)
 
-  // Send a message to the connection
-  std::string response = "Good talking to you\n";
-  send(connection, response.c_str(), response.size(), 0);
+  {
 
-  // Close the connections
+      // Read from the connection
+      char buffer[BSIZE];
+      bzero( buffer, BSIZE );
+
+      auto bytesRead = read(connection, buffer, 100);
+      std::cout << "The message was: " << buffer << " and read " << bytesRead << " bytes" << std::endl;
+
+      
+      if(strcmp(buffer, "quit") == 0)
+      {
+         // Close the connections
+        close(connection);
+        close(sockfd);
+        return 0;
+      }
+
+      // open the buffered filename
+      std::ifstream infile(buffer);
+
+      std::string res = slurp(infile);
+
+      send(connection, res.c_str(), res.size(), 0);
+
+  }
+
   close(connection);
   close(sockfd);
+  return 0;
 
 }
